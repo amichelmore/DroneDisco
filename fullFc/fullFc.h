@@ -3,7 +3,7 @@
 
 #define DEBUG true
 #define PIDTUNE true
-#define RPYTTUNE 0 // 0 for roll, 1 for pitch, 2 for yaw, 3 for height
+#define RPYTTUNE 0 // 0 for roll, 1 for pitch, 2 for yaw, 3 for thrust
 const double alphaPID = 0.05; // learning rate for the PIDs
 
 #include "adaptiveEkf.h"

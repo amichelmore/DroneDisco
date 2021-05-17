@@ -6,6 +6,7 @@ rcObject rco;
 motorControllerObject mco;
 
 unsigned long lastUpdateT = millis();
+unsigned long lastUpdateTFast = millis();
 extern double grav = 9.81; // Gravity
 
 void setup() {
@@ -301,6 +302,10 @@ void loop() {
 
   // Print out debug messages if DEBUG is defined
   #if DEBUG
+//    Serial.print("dt: ");
+//    Serial.println(millis() - lastUpdateTFast);
+    lastUpdateTFast = millis();
+    
     VectorXd motorOutputs;
     motorOutputs = mco.motorControllerOut();
   

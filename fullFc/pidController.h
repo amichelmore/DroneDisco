@@ -31,7 +31,7 @@ class attitudePidObject {
 
   MatrixXd Rgb; // Rotation from global to body
 
-  unsigned long lastUpdateT; // Last time it was updated;
+  float lastUpdateT; // Last time it was updated;
   
   public:
     

@@ -13,14 +13,14 @@ bool attitudePidObject::attitudeInit(const VectorXd &stateX){
   height_ref = stateX(2);
 
   PID = MatrixXd::Zero(4,3);
-//  PID << .013, .001, 0.002,
-//         .01, .001, 0.0028,
-//         0.004, 0, 0.004*0.3,
-//         0.8, .01, 0.3;
-    PID << .13, .003, 0.04,
-         .1, .003, 0.028,
+  PID << .013, .001, 0.002,
+         .01, .001, 0.0028,
          0.004, 0, 0.004*0.3,
-         8, .1, 3;
+         0.8, .01, 0.3;
+//    PID << .13, .003, 0.04,
+//         .1, .003, 0.028,
+//         0.004, 0, 0.004*0.3,
+//         8, .1, 3;
 
   lastUpdateT = millis();
   
@@ -34,7 +34,7 @@ void attitudePidObject::attitudeUpdate(const VectorXd &anglesDesiredIn, const Ve
   heightDesired_d = anglesDesiredIn(3);
 
   // Get time elapsed dt
-  unsigned long dt = (millis() - lastUpdateT)/1000;
+  float dt = (millis() - lastUpdateT)*0.001;
   lastUpdateT = millis();
 
   // Roll Pitch PID calcs

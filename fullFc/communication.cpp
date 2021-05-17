@@ -6,6 +6,7 @@ bool rcObject::rcInit(){
   Wire.begin();
   evo.begin();
   rcOutput = VectorXd::Zero(5);
+  rcOutput(4) = 1;
 
   return true;
 }

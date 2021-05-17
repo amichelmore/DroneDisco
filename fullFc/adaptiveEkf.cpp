@@ -3,6 +3,16 @@
 Adafruit_BNO055 bno = Adafruit_BNO055(55); // IMU
 UBLOX gps(Serial2,115200); // GPS
 
+butterFilter bxd; // xyz velocity butterworth filters
+butterFilter byd;
+butterFilter bzd;
+butterFilter bp; // pqr bw filters
+butterFilter bq;
+butterFilter br;
+butterFilter bxdd; // accelerometer bw filters
+butterFilter bydd;
+butterFilter bzdd;
+
 extern double grav; // Gravity
 
 bool ekfObject::ekfInit(){
@@ -20,6 +30,17 @@ bool ekfObject::ekfInit(){
 
   state = VectorXd::Zero(13);
 
+  // Filter inits
+  bxd.butterInit();
+  byd.butterInit();
+  bzd.butterInit();
+  bp.butterInit();
+  bq.butterInit();
+  br.butterInit();
+  bxdd.butterInit();
+  bydd.butterInit();
+  bzdd.butterInit();
+
   // IMU Setup
   if(!bno.begin()){
     return false;
@@ -35,7 +56,7 @@ bool ekfObject::ekfInit(){
     Serial.println("Getting GPS fix");
     delay(10);
     }
-  while(gps.getHorizontalAccuracy_m() > 2){
+  while(gps.getHorizontalAccuracy_m() > 3){
     Serial.print(gps.getNumSatellites());
     Serial.print(" ");
     Serial.println(gps.getHorizontalAccuracy_m());
@@ -78,7 +99,7 @@ bool ekfObject::ekfInit(){
 
 bool ekfObject::ekfUpdate(){
  
-  // If ekf crashes
+  // If ekf crashes, this shouldn't happen
   if(std::isnan(x_ka(0))){
     ekfInit();
   }
@@ -100,29 +121,42 @@ bool ekfObject::ekfUpdate(){
     yaw += (2*PI);
   }
   
-  // U_t (control input) = x_dd, y_dd, z_dd, yaw_dd
-  VectorXd u_k(4);
-  u_k << linearAccelData.acceleration.x, -linearAccelData.acceleration.y, linearAccelData.acceleration.z, -angVelocityData.gyro.z*(PI/180);
+  // Butter filters for the gyro
+  bp.butterUpdate(-(angVelocityData.gyro.x*(PI/180)));
+  bq.butterUpdate(angVelocityData.gyro.y*(PI/180));
+  br.butterUpdate(-(angVelocityData.gyro.z*(PI/180)));
+  bxdd.butterUpdate(linearAccelData.acceleration.x);
+  bydd.butterUpdate(-linearAccelData.acceleration.y);
+  bzdd.butterUpdate(linearAccelData.acceleration.z);
   
   // Update full state
   state(6) = roll;
   state(7) = pitch;
-  state(9) = -(angVelocityData.gyro.x*(PI/180));
-  state(10) = angVelocityData.gyro.y*(PI/180);
-  state(11) = -(angVelocityData.gyro.z*(PI/180));
-  state(12) = linearAccelData.acceleration.z; // This is only correct for near hover angles
+  state(9) = bp.butterOut();
+  state(10) = bq.butterOut();
+  state(11) = br.butterOut();
+  state(12) = bzdd.butterOut(); // This is only correct for near hover angles
+
+  // U_t (control input) = x_dd, y_dd, z_dd, yaw_dd
+  
+  
+  VectorXd u_k(4);
+  u_k << bxdd.butterOut(), bydd.butterOut(), bzdd.butterOut(), br.butterOut();
   
   if(gps.readSensor()) {
 
     // Get time elapsed dt
-    unsigned long dt = (millis() - lastUpdateT)/1000;
+    float dt = (millis() - lastUpdateT)*0.001;
+    // Serial.print("dt2: ");
+    // float dt2 = dt*1000;
+    // Serial.println(dt2, 4);
     lastUpdateT = millis();
 
     // Declare temporary matrices
     VectorXd Z_k(7); // Measurement matrix
     MatrixXd A(7,7); // State transition matrix
     MatrixXd B(7,4); // Control matrix
-    //VectorXd G(7); // Gravity vector
+    // VectorXd G(7); // Gravity vector
     MatrixXd Rbgp(3,3); // Rotation from body to global frame
     MatrixXd J_f(7,7); // Jacobian of state transition
     VectorXd x_kf(7); // State x forecast
@@ -131,6 +165,7 @@ bool ekfObject::ekfUpdate(){
     MatrixXd K_k(7,7); // Khalman gain
     
     // Read in measurements
+    //Potentially add a filter to these velocities. Though they are already being filtered at the output of the EKF.
     Z_k << R*(gps.getLatitude_rad()-lat0), R*(gps.getLongitude_rad()-lon0)*cos(lat0), -gps.getMSLHeight_m(), gps.getNorthVelocity_ms(), gps.getEastVelocity_ms(), gps.getDownVelocity_ms(), yaw;
   
     // Set A, B, G, Rbgp, J_f @ dt, roll, pitch, and yaw.
@@ -203,13 +238,18 @@ bool ekfObject::ekfUpdate(){
     
     Q_k = alpha*Q_k.eval() + (1-alpha)*(K_k*d_k*d_k.transpose()*K_k.transpose());
 
+    // Butter filters for the velocities
+    bxd.butterUpdate(x_ka(3));
+    byd.butterUpdate(x_ka(4));
+    bzd.butterUpdate(x_ka(5));
+    
     // Update full state
     state(0) = x_ka(0);
     state(1) = x_ka(1);
     state(2) = x_ka(2);
-    state(3) = x_ka(3);
-    state(4) = x_ka(4);
-    state(5) = x_ka(5);
+    state(3) = bxd.butterOut();
+    state(4) = byd.butterOut();
+    state(5) = bzd.butterOut();
     state(8) = x_ka(6);
     
     return true;

@@ -15,6 +15,8 @@
 using Eigen::MatrixXd;
 using Eigen::VectorXd;
 
+#include "butter.h"
+
 extern const double R; // Radius of the earth
 
 const double alpha = 0.1; // Decay const / learning rate
@@ -56,7 +58,7 @@ class ekfObject {
 //  double pitch;
 //  double yaw;
   
-  unsigned long lastUpdateT; // Last time it was updated;
+  float lastUpdateT; // Last time it was updated;
 
   public:
     bool ekfInit();
