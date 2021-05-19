@@ -11,10 +11,12 @@
 using Eigen::MatrixXd;
 using Eigen::VectorXd;
 
+// RC signal bounds
 const double rcLow = 193.0;
 const double rcMid = 992.0;
 const double rcHigh = 1791.0;
 
+// Drone attitude and thrust bounds
 const double maxAngle = PI/8;
 const double maxHeightChange = 0.1;
 const double maxYawChange = PI/16;

@@ -61,7 +61,7 @@ void motorControllerObject::motorControllerUpdate(const VectorXd &torques, bool 
   
   // Safety disarm flag
   #if DISARM
-    armed = 0;
+    armed = false;
   #endif
 
   // Check if the motors are armed

@@ -56,7 +56,7 @@ bool ekfObject::ekfInit(){
     Serial.println("Getting GPS fix");
     delay(10);
     }
-  while(gps.getHorizontalAccuracy_m() > 3){
+  while(gps.getHorizontalAccuracy_m() > 10){
     Serial.print(gps.getNumSatellites());
     Serial.print(" ");
     Serial.println(gps.getHorizontalAccuracy_m());
