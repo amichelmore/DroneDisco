@@ -48,259 +48,16 @@ void loop() {
   rcOutput = rco.rcOut();
 
   // Some variable declarations for the flight modes
-  int flightMode = rcOutput(4);
-  VectorXd attitudeIn(4);
+  int flight_mode = rcOutput(4);
+  VectorXd attitudeDes(4);
+  
+  attitudeDes = flightMode(flight_mode, slowLoop, rcOutput);
+  apo.attitudeUpdate(attitudeDes, state, (flight_mode == 1)); // Takeoff flag only active if in flight_mode 1
+
+  // Check arming
   bool armed = false;
+  // DO ARMING CODE
   
-  // Flight modes
-  // Get torques / thrust from PID attitude controller
-  switch(flightMode) {
-    case 1: // Mode 1: Startup
-      // Set motor speeds to 0 and print diagnostics (state, theoretical motor outputs)
-      attitudeIn << 0, 0, 0, 0;
-      armed = false;
-      
-      break;
-
-    case 2: // Mode 2: Takeoff
-      // set desired roll, pitch, and yaw to 0 and pass takeoff flag
-      attitudeIn << 0, 0, 0, rcOutput(3);
-      apo.attitudeUpdate(attitudeIn, state, 1);
-      armed = true;
-      
-      break;
-
-    case 3: // Mode 2: normal flight
-    
-      // set desired roll, pitch, and yaw 
-      apo.attitudeUpdate(rcOutput.head(4), state, 0);
-      armed = true;
-      
-      break;
-
-    #if PIDTUNE
-
-      case 6: // P tune
-  
-        attitudeIn << 0, 0, 0, rcOutput(3);
-        apo.attitudeUpdate(attitudeIn, state, 1);
-        armed = true;
-  
-        if(slowLoop){ // update P value according to user request every 0.1 sec
-    
-          #if (RPYTUNE == 0 || RPYTUNE == 1)
-            if(rcOutput(2) > 0){
-              apo.modifyPids((apo.getPids(RPYTTUNE, 0)*(1+alphaPID)), RPYTTUNE, 0);
-            }
-            if(rcOutput(2) < 0){
-              apo.modifyPids((apo.getPids(RPYTTUNE, 0)*(1-alphaPID)), RPYTTUNE, 0);
-            }
-          #endif
-    
-          #if (RPYTUNE == 2 || RPYTUNE == 3)
-            if(rcOutput(0) > 0){
-              apo.modifyPids((apo.getPids(RPYTTUNE, 0)*(1+alphaPID)), RPYTUNE, 0);
-            }
-            if(rcOutput(0) < 0){
-              apo.modifyPids((apo.getPids(RPYTTUNE, 0)*(1-alphaPID)), RPYTUNE, 0);
-            }
-          #endif 
-        }
-        armed = true;
-        
-        break;
-        
-      case 5: // I tune (if applicable)
-
-        attitudeIn << 0, 0, 0, rcOutput(3);
-        apo.attitudeUpdate(attitudeIn, state, 1);
-        armed = true;
-  
-        if(slowLoop){ // update I value according to user request every 0.1 sec (for only roll and pitch)
-    
-          #if (RPYTUNE == 0 || RPYTUNE == 1)
-            if(rcOutput(2) > 0){
-              apo.modifyPids((apo.getPids(RPYTTUNE, 1)*(1+alphaPID)), RPYTTUNE, 1);
-            }
-            if(rcOutput(2) < 0){
-              apo.modifyPids((apo.getPids(RPYTTUNE, 1)*(1-alphaPID)), RPYTTUNE, 1);
-            }
-          #endif
-          
-          #if (RPYTUNE == 3)
-            if(rcOutput(0) > 0){
-              apo.modifyPids((apo.getPids(RPYTTUNE, 1)*(1+alphaPID)), RPYTUNE, 1);
-            }
-            if(rcOutput(0) < 0){
-              apo.modifyPids((apo.getPids(RPYTTUNE, 1)*(1-alphaPID)), RPYTUNE, 1);
-            }
-          #endif 
-        }
-        armed = true;
-        
-        break;
-        
-      case 4: // D tune
-
-        attitudeIn << 0, 0, 0, rcOutput(3);
-        apo.attitudeUpdate(attitudeIn, state, 1);
-        armed = true;
-  
-        if(slowLoop){ // update D value according to user request every 0.1 sec
-    
-          #if (RPYTUNE == 0 || RPYTUNE == 1)
-            if(rcOutput(2) > 0){
-              apo.modifyPids((apo.getPids(RPYTTUNE, 2)*(1+alphaPID)), RPYTTUNE, 2);
-            }
-            if(rcOutput(2) < 0){
-              apo.modifyPids((apo.getPids(RPYTTUNE, 2)*(1-alphaPID)), RPYTTUNE, 2);
-            }
-          #endif
-    
-          #if (RPYTUNE == 2 || RPYTUNE == 3)
-            if(rcOutput(0) > 0){
-              apo.modifyPids((apo.getPids(RPYTTUNE, 2)*(1+alphaPID)), RPYTUNE, 2);
-            }
-            if(rcOutput(0) < 0){
-              apo.modifyPids((apo.getPids(RPYTTUNE, 2)*(1-alphaPID)), RPYTUNE, 2);
-            }
-          #endif 
-        }
-        armed = true;
-        
-        break;
-      
-      case 7: // P tune
-  
-        #if RPYTTUNE == 0
-          attitudeIn << rcOutput(0), 0, 0, 0;
-          apo.attitudeUpdate(attitudeIn, state, 0);
-        #elif RPYTTUNE == 1
-          attitudeIn << 0, rcOutput(1), 0, 0;
-          apo.attitudeUpdate(attitudeIn, state, 0);
-        #elif RPYTUNE == 2
-          attitudeIn << 0, 0, rcOutput(2), 0;
-          apo.attitudeUpdate(attitudeIn, state, 0);
-        #elif RPYTTUNE == 3
-          attitudeIn << 0, 0, 0, rcOutput(3);
-          apo.attitudeUpdate(attitudeIn, state, 0);
-        #endif
-  
-        if(slowLoop){ // update P value according to user request every 0.1 sec
-    
-          #if (RPYTUNE == 0 || RPYTUNE == 1)
-            if(rcOutput(2) > 0){
-              apo.modifyPids((apo.getPids(RPYTTUNE, 0)*(1+alphaPID)), RPYTTUNE, 0);
-            }
-            if(rcOutput(2) < 0){
-              apo.modifyPids((apo.getPids(RPYTTUNE, 0)*(1-alphaPID)), RPYTTUNE, 0);
-            }
-          #endif
-    
-          #if (RPYTUNE == 2 || RPYTUNE == 3)
-            if(rcOutput(0) > 0){
-              apo.modifyPids((apo.getPids(RPYTTUNE, 0)*(1+alphaPID)), RPYTUNE, 0);
-            }
-            if(rcOutput(0) < 0){
-              apo.modifyPids((apo.getPids(RPYTTUNE, 0)*(1-alphaPID)), RPYTUNE, 0);
-            }
-          #endif 
-        }
-        armed = true;
-        
-        break;
-        
-      case 8: // I tune (if applicable)
-
-        #if RPYTTUNE == 0
-          attitudeIn << rcOutput(0), 0, 0, 0;
-          apo.attitudeUpdate(attitudeIn, state, 0);
-        #elif RPYTTUNE == 1
-          attitudeIn << 0, rcOutput(1), 0, 0;
-          apo.attitudeUpdate(attitudeIn, state, 0);
-        #elif RPYTUNE == 2
-          attitudeIn << 0, 0, rcOutput(2), 0;
-          apo.attitudeUpdate(attitudeIn, state, 0);
-        #elif RPYTTUNE == 3
-          attitudeIn << 0, 0, 0, rcOutput(3);
-          apo.attitudeUpdate(attitudeIn, state, 0);
-        #endif
-  
-        if(slowLoop){ // update I value according to user request every 0.1 sec (for only roll and pitch)
-    
-          #if (RPYTUNE == 0 || RPYTUNE == 1)
-            if(rcOutput(2) > 0){
-              apo.modifyPids((apo.getPids(RPYTTUNE, 1)*(1+alphaPID)), RPYTTUNE, 1);
-            }
-            if(rcOutput(2) < 0){
-              apo.modifyPids((apo.getPids(RPYTTUNE, 1)*(1-alphaPID)), RPYTTUNE, 1);
-            }
-          #endif
-          
-          #if (RPYTUNE == 3)
-            if(rcOutput(0) > 0){
-              apo.modifyPids((apo.getPids(RPYTTUNE, 1)*(1+alphaPID)), RPYTUNE, 1);
-            }
-            if(rcOutput(0) < 0){
-              apo.modifyPids((apo.getPids(RPYTTUNE, 1)*(1-alphaPID)), RPYTUNE, 1);
-            }
-          #endif 
-        }
-        armed = true;
-        
-        break;
-        
-      case 9: // D tune
-
-        #if RPYTTUNE == 0
-          attitudeIn << rcOutput(0), 0, 0, 0;
-          apo.attitudeUpdate(attitudeIn, state, 0);
-        #elif RPYTTUNE == 1
-          attitudeIn << 0, rcOutput(1), 0, 0;
-          apo.attitudeUpdate(attitudeIn, state, 0);
-        #elif RPYTUNE == 2
-          attitudeIn << 0, 0, rcOutput(2), 0;
-          apo.attitudeUpdate(attitudeIn, state, 0);
-        #elif RPYTTUNE == 3
-          attitudeIn << 0, 0, 0, rcOutput(3);
-          apo.attitudeUpdate(attitudeIn, state, 0);
-        #endif
-  
-        if(slowLoop){ // update D value according to user request every 0.1 sec
-    
-          #if (RPYTUNE == 0 || RPYTUNE == 1)
-            if(rcOutput(2) > 0){
-              apo.modifyPids((apo.getPids(RPYTTUNE, 2)*(1+alphaPID)), RPYTTUNE, 2);
-            }
-            if(rcOutput(2) < 0){
-              apo.modifyPids((apo.getPids(RPYTTUNE, 2)*(1-alphaPID)), RPYTTUNE, 2);
-            }
-          #endif
-    
-          #if (RPYTUNE == 2 || RPYTUNE == 3)
-            if(rcOutput(0) > 0){
-              apo.modifyPids((apo.getPids(RPYTTUNE, 2)*(1+alphaPID)), RPYTUNE, 2);
-            }
-            if(rcOutput(0) < 0){
-              apo.modifyPids((apo.getPids(RPYTTUNE, 2)*(1-alphaPID)), RPYTUNE, 2);
-            }
-          #endif 
-        }
-        armed = true;
-        
-        break;
-        
-    #endif
-    
-    default:
-      // Pass desired inputs normally (Later this will be an error mode)
-      // Set desired roll, pitch, and yaw, and height change
-      apo.attitudeUpdate(rcOutput.head(4), state, 0);
-      armed = true;
-      
-      break; 
-  }
-
   // Convert torques & thrust to Motor input and command motors
   VectorXd attitudeOut(4);
   attitudeOut = apo.attitudeOut();
@@ -389,4 +146,230 @@ void loop() {
     lastUpdateTslow = millis();
   }
 
+}
+
+VectorXd flightMode(int mode, int slowLoop, VectorXd rcOutput) {
+  VectorXd attitudeDes(4);
+  
+  // Flight modes
+  // Get torques / thrust from PID attitude controller
+  switch(mode) {
+    case 1: // Mode 1: Startup
+      // Set motor speeds to 0 and print diagnostics (state, theoretical motor outputs)
+      attitudeDes << 0, 0, 0, 0;
+      
+      break;
+
+    case 2: // Mode 2: Takeoff
+      // set desired roll, pitch, and yaw to 0 and pass takeoff flag
+      attitudeDes << 0, 0, 0, rcOutput(3);
+      
+      break;
+
+    case 3: // Mode 2: normal flight
+    
+      // set desired roll, pitch, and yaw
+      attitudeDes = rcOutput.head(4); 
+      
+      break;
+
+    #if PIDTUNE
+
+      case 6: // P tune
+  
+        attitudeDes << 0, 0, 0, rcOutput(3);
+  
+        if(slowLoop){ // update P value according to user request every 0.1 sec
+    
+          #if (RPYTUNE == 0 || RPYTUNE == 1)
+            if(rcOutput(2) > 0){
+              apo.modifyPids((apo.getPids(RPYTTUNE, 0)*(1+alphaPID)), RPYTTUNE, 0);
+            }
+            if(rcOutput(2) < 0){
+              apo.modifyPids((apo.getPids(RPYTTUNE, 0)*(1-alphaPID)), RPYTTUNE, 0);
+            }
+          #endif
+    
+          #if (RPYTUNE == 2 || RPYTUNE == 3)
+            if(rcOutput(0) > 0){
+              apo.modifyPids((apo.getPids(RPYTTUNE, 0)*(1+alphaPID)), RPYTUNE, 0);
+            }
+            if(rcOutput(0) < 0){
+              apo.modifyPids((apo.getPids(RPYTTUNE, 0)*(1-alphaPID)), RPYTUNE, 0);
+            }
+          #endif 
+        }
+        
+        break;
+        
+      case 5: // I tune (if applicable)
+
+        attitudeDes << 0, 0, 0, rcOutput(3);
+  
+        if(slowLoop){ // update I value according to user request every 0.1 sec (for only roll and pitch)
+    
+          #if (RPYTUNE == 0 || RPYTUNE == 1)
+            if(rcOutput(2) > 0){
+              apo.modifyPids((apo.getPids(RPYTTUNE, 1)*(1+alphaPID)), RPYTTUNE, 1);
+            }
+            if(rcOutput(2) < 0){
+              apo.modifyPids((apo.getPids(RPYTTUNE, 1)*(1-alphaPID)), RPYTTUNE, 1);
+            }
+          #endif
+          
+          #if (RPYTUNE == 3)
+            if(rcOutput(0) > 0){
+              apo.modifyPids((apo.getPids(RPYTTUNE, 1)*(1+alphaPID)), RPYTUNE, 1);
+            }
+            if(rcOutput(0) < 0){
+              apo.modifyPids((apo.getPids(RPYTTUNE, 1)*(1-alphaPID)), RPYTUNE, 1);
+            }
+          #endif 
+        }
+        
+        break;
+        
+      case 4: // D tune
+
+        attitudeDes << 0, 0, 0, rcOutput(3);
+  
+        if(slowLoop){ // update D value according to user request every 0.1 sec
+    
+          #if (RPYTUNE == 0 || RPYTUNE == 1)
+            if(rcOutput(2) > 0){
+              apo.modifyPids((apo.getPids(RPYTTUNE, 2)*(1+alphaPID)), RPYTTUNE, 2);
+            }
+            if(rcOutput(2) < 0){
+              apo.modifyPids((apo.getPids(RPYTTUNE, 2)*(1-alphaPID)), RPYTTUNE, 2);
+            }
+          #endif
+    
+          #if (RPYTUNE == 2 || RPYTUNE == 3)
+            if(rcOutput(0) > 0){
+              apo.modifyPids((apo.getPids(RPYTTUNE, 2)*(1+alphaPID)), RPYTUNE, 2);
+            }
+            if(rcOutput(0) < 0){
+              apo.modifyPids((apo.getPids(RPYTTUNE, 2)*(1-alphaPID)), RPYTUNE, 2);
+            }
+          #endif 
+        }
+        
+        break;
+      
+      case 7: // P tune
+  
+        #if RPYTTUNE == 0
+          attitudeDes << rcOutput(0), 0, 0, 0;
+        #elif RPYTTUNE == 1
+          attitudeDes << 0, rcOutput(1), 0, 0;
+        #elif RPYTUNE == 2
+          attitudeDes << 0, 0, rcOutput(2), 0;
+        #elif RPYTTUNE == 3
+          attitudeDes << 0, 0, 0, rcOutput(3);
+        #endif
+  
+        if(slowLoop){ // update P value according to user request every 0.1 sec
+    
+          #if (RPYTUNE == 0 || RPYTUNE == 1)
+            if(rcOutput(2) > 0){
+              apo.modifyPids((apo.getPids(RPYTTUNE, 0)*(1+alphaPID)), RPYTTUNE, 0);
+            }
+            if(rcOutput(2) < 0){
+              apo.modifyPids((apo.getPids(RPYTTUNE, 0)*(1-alphaPID)), RPYTTUNE, 0);
+            }
+          #endif
+    
+          #if (RPYTUNE == 2 || RPYTUNE == 3)
+            if(rcOutput(0) > 0){
+              apo.modifyPids((apo.getPids(RPYTTUNE, 0)*(1+alphaPID)), RPYTUNE, 0);
+            }
+            if(rcOutput(0) < 0){
+              apo.modifyPids((apo.getPids(RPYTTUNE, 0)*(1-alphaPID)), RPYTUNE, 0);
+            }
+          #endif 
+        }
+        
+        break;
+        
+      case 8: // I tune (if applicable)
+
+        #if RPYTTUNE == 0
+          attitudeDes << rcOutput(0), 0, 0, 0;
+        #elif RPYTTUNE == 1
+          attitudeDes << 0, rcOutput(1), 0, 0;
+        #elif RPYTUNE == 2
+          attitudeDes << 0, 0, rcOutput(2), 0;
+        #elif RPYTTUNE == 3
+          attitudeDes << 0, 0, 0, rcOutput(3);
+        #endif
+  
+        if(slowLoop){ // update I value according to user request every 0.1 sec (for only roll and pitch)
+    
+          #if (RPYTUNE == 0 || RPYTUNE == 1)
+            if(rcOutput(2) > 0){
+              apo.modifyPids((apo.getPids(RPYTTUNE, 1)*(1+alphaPID)), RPYTTUNE, 1);
+            }
+            if(rcOutput(2) < 0){
+              apo.modifyPids((apo.getPids(RPYTTUNE, 1)*(1-alphaPID)), RPYTTUNE, 1);
+            }
+          #endif
+          
+          #if (RPYTUNE == 3)
+            if(rcOutput(0) > 0){
+              apo.modifyPids((apo.getPids(RPYTTUNE, 1)*(1+alphaPID)), RPYTUNE, 1);
+            }
+            if(rcOutput(0) < 0){
+              apo.modifyPids((apo.getPids(RPYTTUNE, 1)*(1-alphaPID)), RPYTUNE, 1);
+            }
+          #endif 
+        }
+        
+        break;
+        
+      case 9: // D tune
+
+        #if RPYTTUNE == 0
+          attitudeDes << rcOutput(0), 0, 0, 0;
+        #elif RPYTTUNE == 1
+          attitudeDes << 0, rcOutput(1), 0, 0;
+        #elif RPYTUNE == 2
+          attitudeDes << 0, 0, rcOutput(2), 0;
+        #elif RPYTTUNE == 3
+          attitudeDes << 0, 0, 0, rcOutput(3);
+        #endif
+  
+        if(slowLoop){ // update D value according to user request every 0.1 sec
+    
+          #if (RPYTUNE == 0 || RPYTUNE == 1)
+            if(rcOutput(2) > 0){
+              apo.modifyPids((apo.getPids(RPYTTUNE, 2)*(1+alphaPID)), RPYTTUNE, 2);
+            }
+            if(rcOutput(2) < 0){
+              apo.modifyPids((apo.getPids(RPYTTUNE, 2)*(1-alphaPID)), RPYTTUNE, 2);
+            }
+          #endif
+    
+          #if (RPYTUNE == 2 || RPYTUNE == 3)
+            if(rcOutput(0) > 0){
+              apo.modifyPids((apo.getPids(RPYTTUNE, 2)*(1+alphaPID)), RPYTUNE, 2);
+            }
+            if(rcOutput(0) < 0){
+              apo.modifyPids((apo.getPids(RPYTTUNE, 2)*(1-alphaPID)), RPYTUNE, 2);
+            }
+          #endif 
+        }
+        
+        break;
+        
+    #endif
+    
+    default:
+      // Pass desired inputs normally (Later this will be an error mode)
+      // Set desired roll, pitch, and yaw, and height change
+      attitudeDes = VectorXd::Zero(4);
+      
+      break; 
+  }
+
+  return attitudeDes;
 }
