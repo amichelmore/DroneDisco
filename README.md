@@ -8,5 +8,7 @@ Adafruit BNO055,
 (fill hardware)
 
 Current Issues:
-The derrivative states are in desperate need of filtering.
+Fix safety
+Improve flight mode modularity
+pids / motors need work
 

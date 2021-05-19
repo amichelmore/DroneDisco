@@ -5,7 +5,7 @@ attitudePidObject apo;
 rcObject rco;
 motorControllerObject mco;
 
-unsigned long lastUpdateT = millis();
+unsigned long lastUpdateTslow = millis();
 unsigned long lastUpdateTFast = millis();
 extern double grav = 9.81; // Gravity
 
@@ -30,6 +30,12 @@ void setup() {
 }
 
 void loop() {
+
+  // Fast and slow loop flags
+  bool slowLoop = false;
+  if((millis() - lastUpdateTslow) > 100) {
+    slowLoop = true;
+  }
 
   // Update ekf and retrieve state
   eo.ekfUpdate();
@@ -80,7 +86,7 @@ void loop() {
         apo.attitudeUpdate(attitudeIn, state, 1);
         armed = true;
   
-        if((millis() - lastUpdateT) > 100){ // update P value according to user request every 0.1 sec
+        if(slowLoop){ // update P value according to user request every 0.1 sec
     
           #if (RPYTUNE == 0 || RPYTUNE == 1)
             if(rcOutput(2) > 0){
@@ -110,7 +116,7 @@ void loop() {
         apo.attitudeUpdate(attitudeIn, state, 1);
         armed = true;
   
-        if((millis() - lastUpdateT) > 100){ // update I value according to user request every 0.1 sec (for only roll and pitch)
+        if(slowLoop){ // update I value according to user request every 0.1 sec (for only roll and pitch)
     
           #if (RPYTUNE == 0 || RPYTUNE == 1)
             if(rcOutput(2) > 0){
@@ -140,7 +146,7 @@ void loop() {
         apo.attitudeUpdate(attitudeIn, state, 1);
         armed = true;
   
-        if((millis() - lastUpdateT) > 100){ // update D value according to user request every 0.1 sec
+        if(slowLoop){ // update D value according to user request every 0.1 sec
     
           #if (RPYTUNE == 0 || RPYTUNE == 1)
             if(rcOutput(2) > 0){
@@ -180,7 +186,7 @@ void loop() {
           apo.attitudeUpdate(attitudeIn, state, 0);
         #endif
   
-        if((millis() - lastUpdateT) > 100){ // update P value according to user request every 0.1 sec
+        if(slowLoop){ // update P value according to user request every 0.1 sec
     
           #if (RPYTUNE == 0 || RPYTUNE == 1)
             if(rcOutput(2) > 0){
@@ -220,7 +226,7 @@ void loop() {
           apo.attitudeUpdate(attitudeIn, state, 0);
         #endif
   
-        if((millis() - lastUpdateT) > 100){ // update I value according to user request every 0.1 sec (for only roll and pitch)
+        if(slowLoop){ // update I value according to user request every 0.1 sec (for only roll and pitch)
     
           #if (RPYTUNE == 0 || RPYTUNE == 1)
             if(rcOutput(2) > 0){
@@ -260,7 +266,7 @@ void loop() {
           apo.attitudeUpdate(attitudeIn, state, 0);
         #endif
   
-        if((millis() - lastUpdateT) > 100){ // update D value according to user request every 0.1 sec
+        if(slowLoop){ // update D value according to user request every 0.1 sec
     
           #if (RPYTUNE == 0 || RPYTUNE == 1)
             if(rcOutput(2) > 0){
@@ -309,7 +315,7 @@ void loop() {
     VectorXd motorOutputs;
     motorOutputs = mco.motorControllerOut();
   
-    if((millis() - lastUpdateT) > 100){
+    if(slowLoop){
   
       Serial.print("x: ");
       Serial.print(state(0));
@@ -374,9 +380,13 @@ void loop() {
   
       #endif
       
-      lastUpdateT = millis();
     }
     
   #endif
+
+  // Loop timer updates
+  if(slowLoop) {
+    lastUpdateTslow = millis();
+  }
 
 }

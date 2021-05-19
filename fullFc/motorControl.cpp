@@ -30,7 +30,7 @@ bool motorControllerObject::motorControllerInit(){
   // Initialize matrices
   motorsOut = VectorXd::Zero(4);
   
-  // Initialize motors (motors 1, 2, 4, have a offset for some reason
+  // Initialize motors (motors 1, 2, 4, have a offset for some weird reason
   mo1.motorInit(22, 284);
   mo2.motorInit(14, 284);
   mo3.motorInit(11, 0);
@@ -56,24 +56,28 @@ bool motorControllerObject::motorControllerInit(){
 }
 
 void motorControllerObject::motorControllerUpdate(const VectorXd &torques, bool armed){
-  // convert torques to motor thrusts
+  // Convert torques to motor thrusts
   motorsOut = torquesToThrottle(torques);
   
-  // Update motor speeds
-  #if DEARM
+  // Safety disarm flag
+  #if DISARM
     armed = 0;
   #endif
 
   // Check if the motors are armed
-  if(!armed){
-    motorsOut = VectorXd::Zero(4);
+  if(armed) {
+    // Update motors
+    mo1.motorUpdate(motorsOut(0));
+    mo2.motorUpdate(motorsOut(1));
+    mo3.motorUpdate(motorsOut(2));
+    mo4.motorUpdate(motorsOut(3));
+  } else {
+    mo1.motorUpdate(0);
+    mo2.motorUpdate(0);
+    mo3.motorUpdate(0);
+    mo4.motorUpdate(0);
   }
-
-  //Update motors
-  mo1.motorUpdate(motorsOut(0));
-  mo2.motorUpdate(motorsOut(1));
-  mo3.motorUpdate(motorsOut(2));
-  mo4.motorUpdate(motorsOut(3));
+  
   
 }
 
@@ -96,6 +100,7 @@ VectorXd motorControllerObject::torquesToThrottle(const VectorXd &torques){
   return throttle;
 }
 
+// This will show what the motors are receiving, this will indicate wether they are armed.
 VectorXd motorControllerObject::motorPwmOut(){
   VectorXd pwmOut(4);
   pwmOut << mo1.motorOut(), mo2.motorOut(), mo3.motorOut(), mo4.motorOut();

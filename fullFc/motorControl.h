@@ -1,7 +1,7 @@
 #ifndef MOTORCONTROL_H
 #define MOTORCONTROL_H
 
-#define DEARM false
+#define DISARM false
 
 #include <Wire.h>
 
@@ -42,7 +42,7 @@ class motorControllerObject {
 
     bool motorControllerInit();
     void motorControllerUpdate(const VectorXd &torques, bool armed);
-    VectorXd motorControllerOut(){ return motorsOut; };
+    VectorXd motorControllerOut(){ return motorsOut; }; // This will show what is being requested of the motors even if disarmed
     VectorXd motorPwmOut();
 };
 
